@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       orderBy: { downloads: 'desc' },
     })
 
-    const suggestions = apps.map(app => ({
+    const suggestions = apps.map((app: typeof apps[number]) => ({
       id: app.id,
       name: app.name,
       icon: app.icon,

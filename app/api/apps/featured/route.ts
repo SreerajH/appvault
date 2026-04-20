@@ -8,7 +8,7 @@ export async function GET() {
       take: 10,
       include: { category: true },
     })
-    const serialized = apps.map(app => ({
+    const serialized = apps.map((app: typeof apps[number]) => ({
       ...app,
       screenshots: JSON.parse(app.screenshots),
       createdAt: app.createdAt.toISOString(),

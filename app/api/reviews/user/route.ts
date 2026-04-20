@@ -25,7 +25,7 @@ export async function GET() {
     })
 
     return Response.json({
-      reviews: reviews.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      reviews: reviews.map((r: typeof reviews[number]) => ({ ...r, createdAt: r.createdAt.toISOString() })),
     })
   } catch (error) {
     console.error('[API GET /reviews/user]', error)
