@@ -1,0 +1,63 @@
+// Prisma schema for AppVault
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  reviews   Review[]
+  createdAt DateTime @default(now())
+}
+
+model App {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  developer     String
+  description   String
+  whatsNew      String?
+  icon          String
+  screenshots   String
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  downloads     Int      @default(0)
+  price         Float    @default(0)
+  version       String
+  size          String
+  compatibility String
+  featured      Boolean  @default(false)
+  downloadCount Int      @default(0)
+  reviews       Review[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+  icon String
+  apps App[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  appId     String
+  app       App      @relation(fields: [appId], references: [id])
+  createdAt DateTime @default(now())
+}
