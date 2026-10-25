@@ -1,7 +1,7 @@
 'use client'
 import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { StarRating } from '@/components/common/star-rating'
 import { getInitials, formatDate } from '@/lib/utils'
 import type { Review } from '@/types'
 
@@ -12,30 +12,24 @@ interface ReviewCardProps {
 
 export function ReviewCard({ review, index = 0 }: ReviewCardProps) {
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="p-4 rounded-2xl border border-slate-800 bg-slate-900/50"
+      transition={{ delay: Math.min(index, 8) * 0.05 }}
+      className="flex h-full flex-col rounded-2xl bg-surface p-5 ring-1 ring-line"
     >
-      <div className="flex items-start gap-3">
-        <Avatar>
-          <AvatarImage src={review.user.avatar ?? undefined} />
-          <AvatarFallback>{getInitials(review.user.name)}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-white">{review.user.name}</span>
-            <span className="text-xs text-slate-500">{formatDate(review.createdAt)}</span>
-          </div>
-          <div className="flex items-center gap-0.5 my-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={`h-3.5 w-3.5 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}`} />
-            ))}
-          </div>
-          <p className="text-sm text-slate-300 leading-relaxed">{review.comment}</p>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <StarRating rating={review.rating} size="sm" />
+        <time className="font-mono text-[11px] uppercase tracking-wide text-ink-3">{formatDate(review.createdAt)}</time>
       </div>
-    </motion.div>
+      <p className="mt-3 flex-1 text-[15px] leading-relaxed text-ink">{review.comment}</p>
+      <div className="mt-4 flex items-center gap-2.5 border-t border-line pt-3">
+        <Avatar className="h-7 w-7">
+          <AvatarImage src={review.user.avatar ?? undefined} />
+          <AvatarFallback className="text-[10px]">{getInitials(review.user.name)}</AvatarFallback>
+        </Avatar>
+        <span className="text-sm font-medium text-ink-2">{review.user.name}</span>
+      </div>
+    </motion.article>
   )
 }

@@ -1,31 +1,36 @@
 'use client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Package, Home, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SearchBar } from '@/components/search/search-bar'
 
 export default function NotFound() {
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
-        <div className="text-8xl font-black text-slate-800 mb-4 select-none">404</div>
-        <div className="mb-6 p-4 rounded-2xl bg-slate-800/50 inline-flex">
-          <Package className="h-12 w-12 text-slate-600" />
+    <div className="mx-auto flex min-h-[70vh] max-w-7xl items-center px-4 py-16 sm:px-6 lg:px-8">
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-xl">
+        {/* A missing tile in the home-screen grid */}
+        <div className="mb-8 grid w-fit grid-cols-3 gap-2" aria-hidden>
+          {Array.from({ length: 9 }).map((_, i) => (
+            <span
+              key={i}
+              className={i === 4 ? 'h-10 w-10 rounded-[22.5%] border-2 border-dashed border-signal' : 'h-10 w-10 rounded-[22.5%] bg-sunken'}
+            />
+          ))}
         </div>
-        <h1 className="text-2xl font-bold text-white mb-3">Page Not Found</h1>
-        <p className="text-slate-400 mb-8 max-w-sm">
-          The page you're looking for doesn't exist or has been moved.
+        <p className="font-mono text-xs uppercase tracking-[0.16em] text-ink-3">Error 404</p>
+        <h1 className="mt-2 font-display text-[44px] font-black leading-[0.95] tracking-[-0.04em] text-ink sm:text-[60px]">
+          This one isn&rsquo;t on the shelf.
+        </h1>
+        <p className="mt-4 max-w-md text-ink-2">
+          The page or app you&rsquo;re after has moved or never existed. Try searching for it instead.
         </p>
-        <div className="flex items-center justify-center gap-3">
+        <SearchBar placeholder="Search apps, games, developers" size="lg" className="mt-8 max-w-md" />
+        <div className="mt-6 flex items-center gap-2">
           <Button asChild>
-            <Link href="/"><Home className="h-4 w-4 mr-2" />Home</Link>
+            <Link href="/">Back to Today</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/explore"><Search className="h-4 w-4 mr-2" />Explore Apps</Link>
+          <Button variant="ghost" asChild>
+            <Link href="/explore">Browse all apps</Link>
           </Button>
         </div>
       </motion.div>

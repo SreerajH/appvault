@@ -5,21 +5,22 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-[background-color,color,border-color,transform] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97]',
   {
     variants: {
       variant: {
-        default: 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/25',
-        destructive: 'bg-red-500 text-white hover:bg-red-600',
-        outline: 'border border-slate-700 bg-transparent hover:bg-slate-800 text-slate-200',
-        secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700',
-        ghost: 'hover:bg-slate-800 text-slate-300 hover:text-white',
-        link: 'text-blue-400 underline-offset-4 hover:underline',
+        default: 'bg-ink text-paper hover:bg-[#2B2823]',
+        signal: 'bg-signal text-ink hover:bg-[#FF5B27]',
+        destructive: 'bg-[#B42318] text-white hover:bg-[#9A1D14]',
+        outline: 'border border-ink/20 bg-transparent text-ink hover:border-ink/40 hover:bg-sunken',
+        secondary: 'bg-sunken text-ink hover:bg-[#E0DBCF]',
+        ghost: 'text-ink-2 hover:text-ink hover:bg-sunken',
+        link: 'text-signal-ink underline-offset-4 hover:underline rounded-none',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-12 rounded-xl px-6 text-base',
+        default: 'h-10 px-5',
+        sm: 'h-8 px-3.5 text-xs',
+        lg: 'h-12 px-7 text-base',
         icon: 'h-10 w-10',
       },
     },

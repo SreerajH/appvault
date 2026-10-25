@@ -1,72 +1,83 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
-@theme {
-  --font-sans: 'Inter', sans-serif;
-  --color-navy-950: #020617;
-  --color-navy-900: #0F172A;
-  --color-navy-800: #1E293B;
-  --color-navy-700: #334155;
-  --color-navy-600: #475569;
-  --color-blue-accent: #3B82F6;
-  --color-blue-light: #60A5FA;
+/*
+  AppVault — "Storefront" design system
+  Warm paper canvas, ink type, one tangerine signal colour used sparingly
+  (actions, ranks, focus). Dark "night" bands give the page rhythm.
+*/
 
-  /* Semantic tokens — powered by CSS variables below */
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+@theme inline {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, SFMono-Regular, monospace;
 }
 
-@layer base {
-  :root {
-    --background: 223 50% 8%;        /* #0A0F1E */
-    --foreground: 210 40% 98%;       /* near white */
-    --card: 222 47% 11%;             /* #0F172A */
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;            /* #1E293B */
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;           /* #1E293B */
-    --input: 217 33% 17%;
-    --ring: 224 76% 48%;
-    --radius: 0.5rem;
-  }
+@theme {
+  --color-paper: #F3F0E8;
+  --color-surface: #FFFFFF;
+  --color-sunken: #EAE6DC;
+  --color-ink: #14120F;
+  --color-ink-2: #57534B;
+  --color-ink-3: #847E72;
+  --color-line: #DCD6C9;
+  --color-signal: #F04A16;
+  --color-signal-ink: #B4300C;
+  --color-moss: #1E7048;
+  --color-night: #15130F;
+  --color-night-2: #211E19;
+  --color-night-line: #36322B;
+
+  /* Legacy semantic names, mapped onto the new palette */
+  --color-background: #F3F0E8;
+  --color-foreground: #14120F;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #14120F;
+  --color-muted: #EAE6DC;
+  --color-muted-foreground: #57534B;
+  --color-border: #DCD6C9;
+  --color-input: #DCD6C9;
+  --color-primary: #14120F;
+  --color-primary-foreground: #F3F0E8;
+
+  --shadow-lift: 0 1px 0 rgb(20 18 15 / 0.04), 0 12px 32px -12px rgb(20 18 15 / 0.18);
+  --shadow-icon: inset 0 0 0 1px rgb(20 18 15 / 0.08), 0 6px 16px -6px rgb(20 18 15 / 0.35);
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
-  }
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    border-color: var(--color-line);
   }
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-feature-settings: "ss01" 1, "cv11" 1;
+  }
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
   }
 }
 
+/* App icon "squircle" — continuous corners like a home screen icon */
+.squircle {
+  border-radius: 22.5%;
+  box-shadow: var(--shadow-icon);
+}
+
 /* ── Custom scrollbar ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #475569; }
+::-webkit-scrollbar-thumb { background: #CFC8B8; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #B5AD9B; }
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
@@ -75,7 +86,10 @@
 }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* Swiper */
-.swiper-pagination-bullet { background: #3B82F6 !important; }
-.swiper-button-next,
-.swiper-button-prev { color: #3B82F6 !important; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

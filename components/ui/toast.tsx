@@ -12,7 +12,7 @@ const ToastViewport = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Viewport
     ref={ref}
-    className={cn('fixed bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]', className)}
+    className={cn('fixed bottom-[72px] md:bottom-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]', className)}
     {...props}
   />
 ))
@@ -25,10 +25,10 @@ const Toast = React.forwardRef<
   <ToastPrimitive.Root
     ref={ref}
     className={cn(
-      'group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-xl border p-4 pr-8 shadow-2xl transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full',
-      variant === 'default' && 'border-slate-700 bg-slate-900 text-white',
-      variant === 'destructive' && 'border-red-800 bg-red-950 text-red-200',
-      variant === 'success' && 'border-green-800 bg-green-950 text-green-200',
+      'group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-2xl border p-4 pr-8 shadow-lift transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full',
+      variant === 'default' && 'border-night-line bg-night text-paper',
+      variant === 'destructive' && 'border-[#F0C4BC] bg-[#FDECE9] text-[#7A1A10]',
+      variant === 'success' && 'border-[#BFDCC6] bg-[#E6F2E8] text-[#14502F]',
       className
     )}
     {...props}
@@ -46,7 +46,7 @@ const ToastClose = React.forwardRef<
     toast-close=""
     {...props}
   >
-    <X className="h-4 w-4 text-slate-400" />
+    <X className="h-4 w-4 opacity-70" />
   </ToastPrimitive.Close>
 ))
 ToastClose.displayName = ToastPrimitive.Close.displayName

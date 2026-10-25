@@ -1,11 +1,12 @@
 'use client'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Star, DollarSign, Tag, Filter } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import Link from 'next/link'
+import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { categoryStyle } from '@/lib/design'
 import type { Category } from '@/types'
+
+type Group = 'sort' | 'price' | 'rating' | 'category'
 
 interface SidebarProps {
   categories: Category[]
@@ -13,144 +14,153 @@ interface SidebarProps {
   selectedPrice?: string
   selectedRating?: number
   selectedSort?: string
+  /** Which filter groups to render. Defaults to all of them. */
+  groups?: Group[]
 }
 
-const sortOptions = [
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'rating', label: 'Top Rated' },
-  { value: 'newest', label: 'Newest First' },
-  { value: 'name', label: 'Name A-Z' },
+export const sortOptions = [
+  { value: 'popular', label: 'Popular' },
+  { value: 'rating', label: 'Top rated' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'name', label: 'A–Z' },
 ]
 
 const priceOptions = [
-  { value: 'all', label: 'All Apps' },
-  { value: 'free', label: 'Free Only' },
-  { value: 'paid', label: 'Paid Only' },
+  { value: 'all', label: 'Free & paid' },
+  { value: 'free', label: 'Free only' },
+  { value: 'paid', label: 'Paid only' },
 ]
 
-export function Sidebar({ categories, selectedCategory, selectedPrice = 'all', selectedRating, selectedSort = 'popular' }: SidebarProps) {
+/* Shared helper: merge one search param into the current URL. */
+export function useParamUpdater() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-
-  const updateParam = (key: string, value: string | null) => {
+  return (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (value === null || value === '') {
-      params.delete(key)
-    } else {
-      params.set(key, value)
-    }
+    if (value === null || value === '') params.delete(key)
+    else params.set(key, value)
     params.delete('page')
-    router.push(`${pathname}?${params.toString()}`)
+    const qs = params.toString()
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
+}
+
+function Option({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+        active ? 'bg-surface font-semibold text-ink ring-1 ring-line' : 'text-ink-2 hover:bg-sunken hover:text-ink'
+      )}
+    >
+      <span className={cn('flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border', active ? 'border-ink' : 'border-ink/25')}>
+        {active && <span className="h-1.5 w-1.5 rounded-full bg-ink" />}
+      </span>
+      {children}
+    </button>
+  )
+}
+
+function GroupTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3">{children}</h3>
+}
+
+export function Sidebar({
+  categories,
+  selectedCategory,
+  selectedPrice = 'all',
+  selectedRating,
+  selectedSort = 'popular',
+  groups = ['sort', 'price', 'rating', 'category'],
+}: SidebarProps) {
+  const updateParam = useParamUpdater()
+  const pathname = usePathname()
+  const onCategoryRoute = pathname.startsWith('/category/')
 
   return (
-    <aside className="w-full lg:w-64 flex-shrink-0">
-      <div className="sticky top-24 space-y-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-4 w-4 text-blue-400" />
-            <h2 className="font-semibold text-white">Filters</h2>
-          </div>
-
-          {/* Sort */}
-          <div className="mb-4">
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Sort By</h3>
-            <div className="space-y-1">
+    <aside className="w-full flex-shrink-0 lg:w-56">
+      <div className="space-y-7 lg:sticky lg:top-24">
+        {groups.includes('sort') && (
+          <div>
+            <GroupTitle>Sort by</GroupTitle>
+            <div className="space-y-0.5">
               {sortOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => updateParam('sort', opt.value)}
-                  className={cn(
-                    'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                    selectedSort === opt.value ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )}
-                >
+                <Option key={opt.value} active={selectedSort === opt.value} onClick={() => updateParam('sort', opt.value)}>
                   {opt.label}
-                </button>
+                </Option>
               ))}
             </div>
           </div>
+        )}
 
-          <Separator className="my-4" />
-
-          {/* Price */}
-          <div className="mb-4">
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Price</h3>
-            <div className="space-y-1">
+        {groups.includes('price') && (
+          <div>
+            <GroupTitle>Price</GroupTitle>
+            <div className="space-y-0.5">
               {priceOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => updateParam('price', opt.value)}
-                  className={cn(
-                    'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                    selectedPrice === opt.value ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )}
-                >
+                <Option key={opt.value} active={selectedPrice === opt.value} onClick={() => updateParam('price', opt.value === 'all' ? null : opt.value)}>
                   {opt.label}
-                </button>
+                </Option>
               ))}
             </div>
           </div>
+        )}
 
-          <Separator className="my-4" />
-
-          {/* Rating */}
-          <div className="mb-4">
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Min Rating</h3>
-            <div className="space-y-1">
-              {[4, 3, 2, 0].map(rating => (
-                <button
+        {groups.includes('rating') && (
+          <div>
+            <GroupTitle>Rating</GroupTitle>
+            <div className="space-y-0.5">
+              {[4.5, 4, 3, 0].map(rating => (
+                <Option
                   key={rating}
+                  active={selectedRating === rating || (!selectedRating && rating === 0)}
                   onClick={() => updateParam('minRating', rating > 0 ? rating.toString() : null)}
-                  className={cn(
-                    'w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    (selectedRating === rating || (!selectedRating && rating === 0)) ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )}
                 >
                   {rating > 0 ? (
-                    <>
-                      <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                      <span>{rating}+ stars</span>
-                    </>
-                  ) : 'Any Rating'}
-                </button>
+                    <span className="inline-flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-ink text-ink" /> {rating} &amp; up
+                    </span>
+                  ) : 'Any rating'}
+                </Option>
               ))}
             </div>
           </div>
+        )}
 
-          <Separator className="my-4" />
-
-          {/* Categories */}
+        {groups.includes('category') && (
           <div>
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Category</h3>
-            <div className="space-y-1">
-              <button
-                onClick={() => updateParam('category', null)}
-                className={cn(
-                  'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                  !selectedCategory ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                )}
-              >
-                All Categories
-              </button>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => updateParam('category', cat.slug)}
-                  className={cn(
-                    'w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
-                    selectedCategory === cat.slug ? 'bg-blue-500/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  )}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                  {cat._count && <span className="ml-auto text-xs text-slate-600">{cat._count.apps}</span>}
-                </button>
-              ))}
+            <GroupTitle>Category</GroupTitle>
+            <div className="space-y-0.5">
+              {!onCategoryRoute && (
+                <Option active={!selectedCategory} onClick={() => updateParam('category', null)}>All categories</Option>
+              )}
+              {categories.map(cat => {
+                const { Icon } = categoryStyle(cat.slug)
+                const active = selectedCategory === cat.slug
+                const body = (
+                  <>
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+                    <span className="flex-1 truncate">{cat.name}</span>
+                    {cat._count && <span className="font-mono text-[11px] text-ink-3">{cat._count.apps}</span>}
+                  </>
+                )
+                const cls = cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                  active ? 'bg-surface font-semibold text-ink ring-1 ring-line' : 'text-ink-2 hover:bg-sunken hover:text-ink'
+                )
+                // On /category/* pages, switching category means switching route
+                return onCategoryRoute ? (
+                  <Link key={cat.id} href={`/category/${cat.slug}`} className={cls}>{body}</Link>
+                ) : (
+                  <button key={cat.id} onClick={() => updateParam('category', cat.slug)} className={cls} aria-pressed={active}>{body}</button>
+                )
+              })}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   )

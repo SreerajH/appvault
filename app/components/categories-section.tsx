@@ -1,87 +1,44 @@
 'use client'
-import { useRef, useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
+import { SectionHeader } from '@/components/common/section-header'
+import { categoryStyle, pad2 } from '@/lib/design'
 import type { Category } from '@/types'
 
 export function CategoriesSection({ categories }: { categories: Category[] }) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [hovered, setHovered] = useState(false)
-
-  const scroll = (dir: 'left' | 'right') => {
-    scrollRef.current?.scrollBy({ left: dir === 'left' ? -280 : 280, behavior: 'smooth' })
-  }
-
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="flex items-center gap-2 mb-6">
-        <Grid3X3 className="h-5 w-5 text-blue-400" />
-        <h2 className="text-2xl font-bold text-foreground">Categories</h2>
-      </div>
-
-      <div
-        className="relative"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {/* Left fade + scroll arrow */}
-        <div className="absolute left-0 top-0 bottom-3 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none rounded-l-xl" />
-        <button
-          onClick={() => scroll('left')}
-          className={`absolute left-1 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center h-8 w-8 rounded-full bg-card border border-border shadow-md text-muted-foreground hover:text-foreground transition-all duration-200 ${hovered ? 'opacity-100' : 'opacity-0'}`}
-          aria-label="Scroll left"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-
-        {/* Scrollable pills */}
-        <div
-          ref={scrollRef}
-          className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide px-2"
-        >
-          {categories.map((cat, i) => (
-            <motion.div
+    <section id="categories">
+      <SectionHeader title="Browse by category" href="/explore" hrefLabel="All apps" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {categories.map(cat => {
+          const { bg, fg, Icon } = categoryStyle(cat.slug)
+          return (
+            <Link
               key={cat.id}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className="flex-shrink-0"
+              href={`/category/${cat.slug}`}
+              className="group relative flex h-[128px] flex-col justify-between overflow-hidden rounded-2xl p-4 transition-transform duration-200 hover:-translate-y-0.5 sm:h-[148px] sm:p-5"
+              style={{ background: bg, color: fg }}
             >
-              <Link
-                href={`/category/${cat.slug}`}
-                className="flex items-center gap-2 px-4 py-3 min-w-fit rounded-xl border border-border bg-card hover:bg-blue-500/10 hover:border-blue-500/50 dark:hover:bg-blue-500/10 dark:hover:border-blue-500/50 transition-all group shadow-sm hover:shadow-[0_0_12px_rgba(59,130,246,0.2)]"
-              >
-                <span className="text-xl">{cat.icon}</span>
-                <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground whitespace-nowrap transition-colors">
-                  {cat.name}
-                </span>
+              <div className="flex items-start justify-between">
+                <Icon className="h-6 w-6" strokeWidth={1.75} />
                 {cat._count && (
-                  <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
-                    ({cat._count.apps})
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] opacity-70">
+                    {pad2(cat._count.apps)} apps
                   </span>
                 )}
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Right fade + scroll arrow */}
-        <div className="absolute right-0 top-0 bottom-3 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none rounded-r-xl" />
-        <button
-          onClick={() => scroll('right')}
-          className={`absolute right-1 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center h-8 w-8 rounded-full bg-card border border-border shadow-md text-muted-foreground hover:text-foreground transition-all duration-200 ${hovered ? 'opacity-100' : 'opacity-0'}`}
-          aria-label="Scroll right"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+              </div>
+              <div className="flex items-end justify-between gap-2">
+                <span className="font-display text-lg font-extrabold leading-tight tracking-[-0.02em] sm:text-xl">
+                  {cat.name}
+                </span>
+                <ArrowUpRight className="h-5 w-5 shrink-0 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
+              </div>
+              {/* Oversized icon watermark */}
+              <Icon aria-hidden className="pointer-events-none absolute -bottom-6 -right-4 h-24 w-24 opacity-[0.07] transition-transform duration-300 group-hover:scale-110" strokeWidth={1.5} />
+            </Link>
+          )
+        })}
       </div>
-    </motion.section>
+    </section>
   )
 }
