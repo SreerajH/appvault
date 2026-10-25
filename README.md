@@ -19,14 +19,17 @@ A Play Store / Web Store style web application built with Next.js 16, featuring 
 
 ## Features
 
-- **Home Page** — Animated hero with gradient background, featured apps carousel, trending grid, category pills, new releases
-- **Explore Page** — Debounced search, filter by category/price/rating, sort options, load-more pagination
-- **App Detail** — Screenshot lightbox, overview/reviews/similar tabs, install simulation with animation, share
-- **Category Pages** — Per-category filtered view with sidebar
-- **Auth** — Login / Register with demo credentials pre-filled
-- **Profile** — Edit name, view all submitted reviews
-- **Dark Mode** — Full dark navy/blue design throughout
-- **Animations** — Page transitions, staggered card entrances, hover lifts, micro-interactions
+- **Today (home)** — Editorial masthead with live catalogue counts, App of the Day / Highest Rated / Just Landed story cards, Top Charts (free · paid · rated), category tiles, Editors' Choice shelf, "Popular right now" 3-row shelf, and a New & Updated band showing each app's release notes
+- **Explore Page** — Search with keyboard-navigable suggestions (`/` to focus), category chip rail, segmented sort, price/rating filters, load-more pagination
+- **App Detail** — Product-page layout: stat strip, screenshot lightbox, About + What's New, Information table, ratings histogram + reviews, sticky compact GET bar, install simulation, APK download, share
+- **Category Pages** — Tinted category banner, chip rail to jump between categories, sort/filter sidebar
+- **Auth** — Split-screen Login / Register with a live wall of app icons; one-click demo credentials
+- **Profile** — Edit name, review stats, all submitted reviews
+- **Mobile** — Native-store style bottom tab bar (Today · Explore · Search · Account)
+
+## Design system — "Storefront"
+
+Warm paper canvas (`paper #F3F0E8`), ink type (`ink #14120F`) and a single tangerine signal colour (`signal #F04A16`, `signal-ink #B4300C` for text) used only for actions, ranks and focus. Dark `night` bands add rhythm. Type: Schibsted Grotesk (display), Geist (body), Geist Mono (labels/data). Tokens live in `app/globals.css`; per-app tints, category styles and copy helpers in `lib/design.ts`.
 
 ## Quick Start
 

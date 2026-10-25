@@ -1,27 +1,23 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  ArrowLeft, Star, Download, Share2, Check,
-  Info, MessageSquare, Grid2X2,
-  Smartphone, HardDrive, Calendar, Tag,
-} from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Download, Share, Check, Star, PenLine } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { ReviewCard } from '@/components/reviews/review-card'
 import { StarRatingInput } from '@/components/reviews/star-rating-input'
-import { AppCard } from '@/components/apps/app-card'
+import { AppGrid } from '@/components/apps/app-grid'
+import { AppIcon } from '@/components/apps/app-icon'
 import { StarRating } from '@/components/common/star-rating'
-import { PriceBadge } from '@/components/ui/PriceBadge'
-import { formatDownloadCount, formatPrice, formatDate } from '@/lib/utils'
+import { SectionHeader } from '@/components/common/section-header'
+import { formatDownloadCount, formatPrice, formatDate, cn } from '@/lib/utils'
+import { tagline, placeholdPng } from '@/lib/design'
 import { toast } from '@/hooks/use-toast'
 import type { AppWithReviews, App } from '@/types'
 
@@ -44,6 +40,25 @@ export function AppDetailClient({ app, similarApps }: AppDetailClientProps) {
   const [localReviews, setLocalReviews] = useState(app.reviews)
   const [downloadCount, setDownloadCount] = useState(app.downloadCount)
   const [downloading, setDownloading] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [showBar, setShowBar] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
+
+  // Compact "GET" bar once the main actions scroll out of view
+  useEffect(() => {
+    const el = actionsRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setShowBar(!e.isIntersecting && e.boundingClientRect.top < 0), { rootMargin: '-64px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  const histogram = useMemo(() => {
+    const counts = [0, 0, 0, 0, 0]
+    localReviews.forEach((r: { rating: number }) => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating - 1]++ })
+    const max = Math.max(1, ...counts)
+    return [5, 4, 3, 2, 1].map(stars => ({ stars, count: counts[stars - 1], pct: (counts[stars - 1] / max) * 100 }))
+  }, [localReviews])
 
   const handleDownloadApk = async () => {
     setDownloading(true)
@@ -84,6 +99,8 @@ export function AppDetailClient({ app, similarApps }: AppDetailClientProps) {
     } catch {}
   }
 
+  const openReview = () => (session ? setReviewOpen(true) : router.push('/login'))
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) { router.push('/login'); return }
@@ -111,82 +128,98 @@ export function AppDetailClient({ app, similarApps }: AppDetailClientProps) {
     setSubmitting(false)
   }
 
-  return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Breadcrumb */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="flex items-center gap-2 text-sm text-slate-500 mb-6"
-      >
-        <button onClick={() => router.back()} className="flex items-center gap-1 hover:text-white transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-        <span>/</span>
-        <Link href={`/category/${app.category.slug}`} className="hover:text-white transition-colors">
-          {app.category.name}
-        </Link>
-        <span>/</span>
-        <span className="text-slate-300 truncate max-w-40">{app.name}</span>
-      </motion.div>
+  const priceLabel = app.price === 0 ? 'Get' : `Buy ${formatPrice(app.price)}`
+  const [sizeNum, sizeUnit] = app.size.split(' ')
 
-      {/* Hero */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
+  const renderInstall = (compact = false) => (
+    <Button
+      onClick={handleInstall}
+      disabled={installing || installed}
+      size={compact ? 'sm' : 'lg'}
+      variant={installed ? 'secondary' : 'default'}
+      className={cn('relative overflow-hidden disabled:opacity-100', compact ? 'min-w-[76px]' : 'min-w-[148px]')}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {installing ? (
+          <motion.span key="installing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+            {!compact && 'Installing'}
+          </motion.span>
+        ) : installed ? (
+          <motion.span key="installed" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center gap-1.5">
+            <Check className="h-4 w-4" /> {compact ? 'Open' : 'Installed'}
+          </motion.span>
+        ) : (
+          <motion.span key="install" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{compact ? (app.price === 0 ? 'Get' : formatPrice(app.price)) : priceLabel}</motion.span>
+        )}
+      </AnimatePresence>
+    </Button>
+  )
+
+  const stats = [
+    { label: `${localReviews.length} ratings`, value: app.rating.toFixed(1), sub: <StarRating rating={app.rating} size="sm" /> },
+    { label: 'Installs', value: formatDownloadCount(app.downloads), sub: 'all time' },
+    { label: 'APK downloads', value: formatDownloadCount(downloadCount), sub: 'this build' },
+    { label: 'Size', value: sizeNum, sub: sizeUnit ?? '' },
+    { label: 'Version', value: app.version, sub: 'latest' },
+  ]
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+      {/* Compact product bar */}
+      <AnimatePresence>
+        {showBar && (
+          <motion.div
+            initial={{ y: -12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -12, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-x-0 top-16 z-30 border-b border-line bg-paper/90 backdrop-blur-xl"
+          >
+            <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+              <AppIcon app={app} size={34} />
+              <p className="min-w-0 flex-1 truncate font-semibold text-ink">{app.name}</p>
+              {renderInstall(true)}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Breadcrumb */}
+      <nav className="mb-8 flex items-center gap-1.5 text-sm text-ink-3" aria-label="Breadcrumb">
+        <button onClick={() => router.back()} className="mr-2 inline-flex items-center gap-1 rounded-full py-1 pr-2 text-ink-2 transition-colors hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <Link href="/explore" className="hover:text-ink">Apps</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href={`/category/${app.category.slug}`} className="hover:text-ink">{app.category.name}</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="max-w-40 truncate text-ink-2">{app.name}</span>
+      </nav>
+
+      {/* Product header */}
+      <motion.header
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row gap-6 mb-8"
+        transition={{ duration: 0.4 }}
+        className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8"
       >
-        <div className="relative h-28 w-28 rounded-3xl overflow-hidden flex-shrink-0 shadow-2xl">
-          <Image src={app.icon} alt={app.name} fill className="object-cover" unoptimized />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-white mb-1">{app.name}</h1>
-          <p className="text-blue-400 font-medium mb-3">{app.developer}</p>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="flex items-center gap-1.5">
-              <StarRating rating={app.rating} size="sm" />
-              <span className="font-semibold text-amber-400">{app.rating.toFixed(1)}</span>
-              <span className="text-slate-500 text-sm">({app.reviewCount})</span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-400 text-sm">
-              <Download className="h-4 w-4" />
-              {formatDownloadCount(downloadCount)}
-            </div>
-            <PriceBadge price={app.price} className="text-sm px-3 py-1" />
-            <Badge variant="default">{app.category.name}</Badge>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleInstall}
-              disabled={installing || installed}
-              className="min-w-32 relative overflow-hidden"
-            >
-              <AnimatePresence mode="wait">
-                {installing ? (
-                  <motion.div key="installing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Installing...
-                  </motion.div>
-                ) : installed ? (
-                  <motion.div key="installed" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2">
-                    <Check className="h-4 w-4" /> Installed
-                  </motion.div>
-                ) : (
-                  <motion.span key="install">{app.price === 0 ? 'Get' : `Buy ${formatPrice(app.price)}`}</motion.span>
-                )}
-              </AnimatePresence>
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleDownloadApk}
-              disabled={downloading}
-              className="flex items-center gap-2"
-            >
+        <AppIcon app={app} size={132} className="shadow-[0_24px_48px_-20px_rgb(20_18_15/0.45)]" />
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-3">{app.category.name}</p>
+          <h1 className="mt-1.5 font-display text-[40px] font-black leading-[0.95] tracking-[-0.035em] text-ink sm:text-[54px]">
+            {app.name}
+          </h1>
+          <p className="mt-2 font-medium text-signal-ink">{app.developer}</p>
+          <p className="mt-1 max-w-xl text-[15px] text-ink-2">{tagline(app, 110)}</p>
+
+          <div ref={actionsRef} className="mt-6 flex flex-wrap items-center gap-2.5">
+            {renderInstall()}
+            <Button variant="outline" size="lg" onClick={handleDownloadApk} disabled={downloading}>
               {downloading ? (
                 <>
-                  <div className="h-4 w-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                  Downloading...
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink/20 border-t-ink" />
+                  Downloading
                 </>
               ) : (
                 <>
@@ -195,184 +228,222 @@ export function AppDetailClient({ app, similarApps }: AppDetailClientProps) {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" onClick={handleShare}>
-              <Share2 className="h-4 w-4" />
+            <Button variant="outline" size="icon" className="h-12 w-12" onClick={handleShare} aria-label="Copy link">
+              <Share className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </motion.div>
+      </motion.header>
+
+      {/* Stat strip */}
+      <dl className="-mx-4 mt-10 flex snap-x overflow-x-auto border-y border-line px-4 scrollbar-hide sm:mx-0 sm:px-0">
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            className={cn(
+              'flex min-w-[132px] flex-1 snap-start flex-col items-center px-4 py-4 text-center',
+              i > 0 && 'border-l border-line'
+            )}
+          >
+            <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">{s.label}</dt>
+            <dd className="mt-1.5 font-display text-[26px] font-extrabold leading-none tracking-tight text-ink tabular-nums">{s.value}</dd>
+            <dd className="mt-1.5 flex h-4 items-center text-xs text-ink-3">{s.sub}</dd>
+          </div>
+        ))}
+      </dl>
 
       {/* Screenshots */}
       {app.screenshots.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: 'none' }}>
+        <section className="mt-12">
+          <h2 className="mb-4 font-display text-2xl font-extrabold tracking-tight text-ink">Preview</h2>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-2 scrollbar-hide sm:mx-0 sm:scroll-px-0 sm:px-0">
             {app.screenshots.map((src: string, i: number) => (
               <button
                 key={i}
                 onClick={() => { setLightboxIndex(i); setLightboxOpen(true) }}
-                className="flex-shrink-0 relative h-44 w-72 rounded-2xl overflow-hidden border border-slate-800 hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-500/10"
+                className="group relative aspect-video h-[190px] shrink-0 snap-start overflow-hidden rounded-2xl bg-sunken ring-1 ring-line sm:h-[250px]"
+                aria-label={`Open screenshot ${i + 1}`}
               >
-                <Image src={src} alt={`Screenshot ${i + 1}`} fill className="object-cover" unoptimized />
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors" />
+                <Image src={placeholdPng(src)} alt={`${app.name} screenshot ${i + 1}`} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.02]" unoptimized />
               </button>
             ))}
           </div>
-        </motion.div>
+        </section>
       )}
 
-      {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Tabs defaultValue="overview">
-          <TabsList>
-            <TabsTrigger value="overview" className="flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5" /> Overview
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="flex items-center gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> Reviews ({localReviews.length})
-            </TabsTrigger>
-            <TabsTrigger value="similar" className="flex items-center gap-1.5">
-              <Grid2X2 className="h-3.5 w-3.5" /> Similar
-            </TabsTrigger>
-          </TabsList>
+      {/* About + Information */}
+      <div className="mt-14 grid gap-12 lg:grid-cols-[1fr_320px]">
+        <section>
+          <h2 className="mb-3 font-display text-2xl font-extrabold tracking-tight text-ink">About this app</h2>
+          <p className={cn('whitespace-pre-line text-[15px] leading-relaxed text-ink-2', !expanded && 'line-clamp-4')}>
+            {app.description}
+          </p>
+          {app.description.length > 260 && (
+            <button onClick={() => setExpanded(e => !e)} className="mt-2 text-sm font-semibold text-signal-ink hover:text-ink">
+              {expanded ? 'Less' : 'More'}
+            </button>
+          )}
 
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                <div>
-                  <h3 className="font-semibold text-white mb-3">About</h3>
-                  <p className="text-slate-300 leading-relaxed whitespace-pre-line">{app.description}</p>
-                </div>
-                {app.whatsNew && (
-                  <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                    <h3 className="font-semibold text-blue-400 mb-2">{"What's New"}</h3>
-                    <p className="text-slate-300 text-sm leading-relaxed">{app.whatsNew}</p>
-                  </div>
-                )}
+          {app.whatsNew && (
+            <div className="mt-10 rounded-2xl bg-surface p-5 ring-1 ring-line sm:p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="font-display text-lg font-extrabold tracking-tight text-ink">{"What's new"}</h3>
+                <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+                  Version {app.version} · {formatDate(app.updatedAt)}
+                </span>
               </div>
-              <div className="space-y-3">
-                <h3 className="font-semibold text-white mb-3">App Info</h3>
-                {[
-                  { icon: Tag, label: 'Version', value: app.version },
-                  { icon: HardDrive, label: 'Size', value: app.size },
-                  { icon: Smartphone, label: 'Compatibility', value: app.compatibility },
-                  { icon: Calendar, label: 'Updated', value: formatDate(app.updatedAt) },
-                  { icon: Grid2X2, label: 'Category', value: app.category.name },
-                ].map(({ icon: Icon, label, value }) => (
-                  <div key={label} className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50">
-                    <Icon className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-slate-500">{label}</p>
-                      <p className="text-sm text-white">{value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{app.whatsNew}</p>
             </div>
-          </TabsContent>
+          )}
+        </section>
 
-          <TabsContent value="reviews">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-bold text-white">{app.rating.toFixed(1)}</span>
-                  <div>
-                    <StarRating rating={app.rating} size="md" />
-                    <p className="text-slate-500 text-sm mt-1">{app.reviewCount} reviews</p>
+        <aside>
+          <h2 className="mb-3 font-display text-2xl font-extrabold tracking-tight text-ink">Information</h2>
+          <dl className="divide-y divide-line border-y border-line text-sm">
+            {[
+              ['Provider', app.developer],
+              ['Category', app.category.name],
+              ['Size', app.size],
+              ['Compatibility', app.compatibility],
+              ['Version', app.version],
+              ['Updated', formatDate(app.updatedAt)],
+              ['Price', formatPrice(app.price)],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-start justify-between gap-6 py-3">
+                <dt className="text-ink-3">{label}</dt>
+                <dd className="text-right font-medium text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </aside>
+      </div>
+
+      {/* Ratings & reviews */}
+      <section id="reviews" className="mt-16">
+        <SectionHeader
+          title="Ratings & reviews"
+          action={
+            <Button size="sm" variant="outline" onClick={openReview}>
+              <PenLine className="h-3.5 w-3.5" /> Write a review
+            </Button>
+          }
+        />
+        <div className="grid gap-10 lg:grid-cols-[260px_1fr]">
+          <div>
+            <div className="flex items-end gap-3">
+              <span className="font-display text-[72px] font-black leading-[0.8] tracking-[-0.04em] text-ink">{app.rating.toFixed(1)}</span>
+              <span className="pb-1 text-sm text-ink-3">out of 5</span>
+            </div>
+            <div className="mt-5 space-y-1.5">
+              {histogram.map(h => (
+                <div key={h.stars} className="flex items-center gap-2.5">
+                  <span className="inline-flex w-7 items-center gap-0.5 font-mono text-[11px] text-ink-3">
+                    {h.stars}<Star className="h-2.5 w-2.5 fill-ink-3 text-ink-3" />
+                  </span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-sunken">
+                    <motion.div
+                      className="h-full rounded-full bg-ink"
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${h.pct}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                    />
                   </div>
                 </div>
-                <Button onClick={() => session ? setReviewOpen(true) : router.push('/login')}>
-                  Write a Review
-                </Button>
-              </div>
-              <div className="space-y-3">
-                {localReviews.map((review: any, i: number) => (
-                  <ReviewCard key={review.id} review={review} index={i} />
-                ))}
-                {localReviews.length === 0 && (
-                  <div className="text-center py-12 text-slate-500 rounded-2xl border border-slate-800 bg-slate-900/50">
-                    No reviews yet. Be the first to review!
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
-          </TabsContent>
+            <p className="mt-3 text-xs text-ink-3">{localReviews.length} rating{localReviews.length === 1 ? '' : 's'} on AppVault</p>
+          </div>
 
-          <TabsContent value="similar">
-            {similarApps.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {similarApps.map((a, i) => <AppCard key={a.id} app={a} index={i} />)}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-center py-12">No similar apps found.</p>
-            )}
-          </TabsContent>
-        </Tabs>
-      </motion.div>
+          {localReviews.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {localReviews.map((review: any, i: number) => (
+                <ReviewCard key={review.id} review={review} index={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-start justify-center rounded-2xl border border-dashed border-ink/20 p-8">
+              <p className="font-display text-xl font-bold text-ink">No reviews yet</p>
+              <p className="mt-1 text-sm text-ink-2">Tried {app.name}? Tell people what it’s actually like.</p>
+              <Button className="mt-4" size="sm" onClick={openReview}>Write the first review</Button>
+            </div>
+          )}
+        </div>
+      </section>
 
-      {/* Screenshot Lightbox */}
+      {/* Similar */}
+      {similarApps.length > 0 && (
+        <section className="mt-16">
+          <SectionHeader
+            title="You might also like"
+            href={`/category/${app.category.slug}`}
+            hrefLabel={`More ${app.category.name}`}
+          />
+          <AppGrid apps={similarApps} className="xl:grid-cols-2" />
+        </section>
+      )}
+
+      {/* Screenshot lightbox */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-3xl p-2 bg-slate-950">
+        <DialogContent className="max-w-5xl border-night-line bg-night p-3 sm:p-4">
           <DialogHeader className="sr-only">
             <DialogTitle>Screenshot viewer</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-2">
+          <div className="relative aspect-video overflow-hidden rounded-2xl">
+            <Image src={placeholdPng(app.screenshots[lightboxIndex] ?? '')} alt={`${app.name} screenshot ${lightboxIndex + 1}`} fill className="object-cover" unoptimized />
+          </div>
+          <div className="flex items-center justify-between px-1">
             <button
               onClick={() => setLightboxIndex(i => Math.max(0, i - 1))}
               disabled={lightboxIndex === 0}
-              className="p-2 rounded-lg hover:bg-slate-800 disabled:opacity-30 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-paper transition-colors hover:bg-paper/10 disabled:opacity-30"
+              aria-label="Previous screenshot"
             >
-              <ArrowLeft className="h-5 w-5 text-white" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
-            <div className="relative flex-1 aspect-video rounded-xl overflow-hidden">
-              <Image src={app.screenshots[lightboxIndex]} alt="" fill className="object-cover" unoptimized />
-            </div>
+            <p className="font-mono text-xs text-paper/60">{lightboxIndex + 1} / {app.screenshots.length}</p>
             <button
               onClick={() => setLightboxIndex(i => Math.min(app.screenshots.length - 1, i + 1))}
               disabled={lightboxIndex === app.screenshots.length - 1}
-              className="p-2 rounded-lg hover:bg-slate-800 disabled:opacity-30 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-paper transition-colors hover:bg-paper/10 disabled:opacity-30"
+              aria-label="Next screenshot"
             >
-              <ArrowLeft className="h-5 w-5 text-white rotate-180" />
+              <ArrowRight className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-center text-sm text-slate-500 mt-1">{lightboxIndex + 1} / {app.screenshots.length}</p>
         </DialogContent>
       </Dialog>
 
-      {/* Review Dialog */}
+      {/* Review dialog */}
       <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Write a Review for {app.name}</DialogTitle>
+            <div className="flex items-center gap-3">
+              <AppIcon app={app} size={40} />
+              <DialogTitle>Review {app.name}</DialogTitle>
+            </div>
           </DialogHeader>
-          <form onSubmit={handleReviewSubmit} className="space-y-4 mt-2">
+          <form onSubmit={handleReviewSubmit} className="mt-1 space-y-5">
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">Your Rating</label>
+              <label className="mb-2 block text-[13px] font-semibold text-ink">Your rating</label>
               <StarRatingInput value={reviewRating} onChange={setReviewRating} />
             </div>
             <div>
-              <label className="text-sm text-slate-400 mb-2 block">Your Review</label>
+              <label htmlFor="review" className="mb-2 block text-[13px] font-semibold text-ink">Your review</label>
               <Textarea
+                id="review"
                 value={reviewComment}
                 onChange={e => setReviewComment(e.target.value)}
-                placeholder="Share your experience with this app..."
+                placeholder="What do you use it for? What surprised you?"
                 rows={4}
                 maxLength={500}
               />
-              <p className="text-xs text-slate-600 mt-1">{reviewComment.length}/500</p>
+              <p className="mt-1 text-right font-mono text-[11px] text-ink-3">{reviewComment.length}/500</p>
             </div>
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setReviewOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Review'}
+                {submitting ? 'Submitting…' : 'Post review'}
               </Button>
             </div>
           </form>

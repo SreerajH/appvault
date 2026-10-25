@@ -1,10 +1,11 @@
 'use client'
-import { useState, useEffect, useCallback, useTransition } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { useState, useEffect, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { SlidersHorizontal, X } from 'lucide-react'
 import { AppGrid } from '@/components/apps/app-grid'
 import { Sidebar } from '@/components/layout/sidebar'
+import { CategoryChips, SortTabs } from '@/components/layout/filter-bar'
 import { Button } from '@/components/ui/button'
 import { SearchBar } from '@/components/search/search-bar'
 import type { App, Category } from '@/types'
@@ -32,7 +33,7 @@ export function ExploreClient({
   const [totalPages, setTotalPages] = useState(initialTotalPages)
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [isPending] = useTransition()
   const urlSearchParams = useSearchParams()
 
   useEffect(() => {
@@ -58,59 +59,77 @@ export function ExploreClient({
     setLoading(false)
   }
 
+  const activeCategory = categories.find(c => c.slug === searchParams.category)
+  const filterCount = (searchParams.price && searchParams.price !== 'all' ? 1 : 0) + (searchParams.minRating ? 1 : 0)
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            {searchParams.search ? `Results for "${searchParams.search}"` : 'Explore Apps'}
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      {/* Masthead */}
+      <div className="flex flex-col gap-6 border-b border-ink pb-8 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-ink-3">
+            {searchParams.search ? 'Search results' : activeCategory ? 'Explore · Category' : 'Explore'}
+          </p>
+          <h1 className="mt-2 truncate font-display text-[44px] font-black leading-[0.95] tracking-[-0.04em] text-ink sm:text-[64px]">
+            {searchParams.search ? <>&ldquo;{searchParams.search}&rdquo;</> : activeCategory ? activeCategory.name : 'All apps'}
           </h1>
-          <p className="text-slate-400 text-sm mt-1">{total} apps found</p>
+          <p className="mt-3 text-sm text-ink-2">
+            <span className="font-mono font-semibold tabular-nums text-ink">{total}</span> {total === 1 ? 'app' : 'apps'}
+            {searchParams.search && (
+              <> · <Link href="/explore" className="font-semibold text-signal-ink hover:text-ink">Clear search</Link></>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:block w-64">
-            <SearchBar initialQuery={searchParams.search} placeholder="Search..." />
+        <SearchBar
+          key={searchParams.search ?? ''}
+          initialQuery={searchParams.search}
+          placeholder="Search apps, games, developers"
+          size="lg"
+          className="w-full md:w-[400px]"
+        />
+      </div>
+
+      {/* Category rail + sort */}
+      <div className="mt-6 space-y-4">
+        <CategoryChips categories={categories} selected={searchParams.category} />
+        <div className="flex items-center justify-between gap-3">
+          <div className="-mx-1 overflow-x-auto px-1 scrollbar-hide">
+            <SortTabs selected={searchParams.sort ?? 'popular'} />
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="lg:hidden flex items-center gap-2"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="shrink-0 lg:hidden"
+            onClick={() => setSidebarOpen(o => !o)}
+            aria-expanded={sidebarOpen}
           >
-            <SlidersHorizontal className="h-4 w-4" />
-            Filters
+            {sidebarOpen ? <X className="h-3.5 w-3.5" /> : <SlidersHorizontal className="h-3.5 w-3.5" />}
+            Filters{filterCount > 0 && ` · ${filterCount}`}
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-8">
-        {/* Sidebar — desktop always visible, mobile toggle */}
-        <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block`}>
+      <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:gap-10">
+        <div className={`${sidebarOpen ? 'block' : 'hidden'} rounded-2xl bg-sunken/60 p-4 lg:block lg:rounded-none lg:bg-transparent lg:p-0`}>
           <Sidebar
             categories={categories}
             selectedCategory={searchParams.category}
             selectedPrice={searchParams.price}
             selectedRating={searchParams.minRating ? parseFloat(searchParams.minRating) : undefined}
             selectedSort={searchParams.sort}
+            groups={['price', 'rating']}
           />
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <AppGrid apps={apps} loading={isPending} />
 
-          {/* Load more */}
           {page < totalPages && (
-            <div className="flex justify-center mt-8">
-              <Button
-                variant="outline"
-                onClick={loadMore}
-                disabled={loading}
-                className="min-w-32"
-              >
-                {loading ? 'Loading...' : 'Load More'}
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <Button variant="outline" onClick={loadMore} disabled={loading} className="min-w-40">
+                {loading ? 'Loading…' : 'Show more apps'}
               </Button>
+              <p className="font-mono text-[11px] text-ink-3">Showing {apps.length} of {total}</p>
             </div>
           )}
         </div>
