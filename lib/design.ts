@@ -11,10 +11,25 @@ import { generateColorFromString } from '@/lib/utils'
 
 const PLACEHOLD = /placehold\.co\/(\d+)x(\d+)\/([0-9a-fA-F]{6})\/([0-9a-fA-F]{6})/
 
+/* Designed artwork for apps that have it, keyed by app name. Overrides the
+   seeded placeholder icon (and its colour) everywhere an AppIcon renders. */
+const CUSTOM_ICONS: Record<string, { src: string; tint: string }> = {
+  LearnLingo:     { src: '/icons/learnlingo.webp',      tint: '#1F7A4A' },
+  Whisper:        { src: '/icons/whisper.webp',         tint: '#1D5BEA' },
+  SnapCollagePro: { src: '/icons/snapcollage-pro.webp', tint: '#D63AB0' },
+}
+
 export function appTint(app: { icon: string; name: string }): string {
+  const custom = CUSTOM_ICONS[app.name]
+  if (custom) return custom.tint
   const m = app.icon.match(PLACEHOLD)
   if (m) return `#${m[3].toUpperCase()}`
   return hslToHex(generateColorFromString(app.name))
+}
+
+/** Resolve an app's icon: designed artwork if we have it, else the stored URL. */
+export function appIconSrc(app: { icon: string; name: string }, size = 192): string {
+  return CUSTOM_ICONS[app.name]?.src ?? iconSrc(app.icon, size)
 }
 
 /** Request a sharper placeholder icon at the size we actually render.

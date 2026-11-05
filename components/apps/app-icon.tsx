@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { iconSrc } from '@/lib/design'
+import { appIconSrc } from '@/lib/design'
 
 interface AppIconProps {
   app: { icon: string; name: string }
@@ -17,7 +17,7 @@ export function AppIcon({ app, size = 64, className }: AppIconProps) {
       className={cn('squircle relative shrink-0 overflow-hidden bg-sunken', className)}
       style={{ width: size, height: size }}
     >
-      <Image src={iconSrc(app.icon, fetchSize)} alt={`${app.name} icon`} fill sizes={`${size}px`} className="object-cover" unoptimized />
+      <Image src={appIconSrc(app, fetchSize)} alt={`${app.name} icon`} fill sizes={`${size}px`} className="object-cover" unoptimized />
     </div>
   )
 }
